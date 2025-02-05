@@ -8,6 +8,7 @@ import CustomButton from "@/components/CustomButton";
 import InputField from "@/components/InputField";
 import OAuth from "@/components/OAuth";
 import { icons, images } from "@/constants";
+import { fetchAPI } from "@/lib/fetch";
 
 const SignUp = () => {
   const { isLoaded, signUp, setActive } = useSignUp();
@@ -37,12 +38,11 @@ const SignUp = () => {
         state: "pending",
       });
     } catch (err: any) {
-      // See https://clerk.com/docs/custom-flows/error-handling
-      // for more info on error handling
       console.log(JSON.stringify(err, null, 2));
       Alert.alert("Error", err.errors[0].longMessage);
     }
   };
+
   const onPressVerify = async () => {
     if (!isLoaded) return;
     try {
@@ -51,13 +51,23 @@ const SignUp = () => {
       });
 
       if (completeSignUp.status === "complete") {
-        // Only set the state, do NOT call setActive yet
+        await fetchAPI("/(api)/user", {
+          method: "POST",
+          body: JSON.stringify({
+            name: form.name,
+            email: form.email,
+            clerkId: completeSignUp.createdUserId,
+          }),
+        });
+
+        await setActive({ session: completeSignUp.createdSessionId });
+
         setVerification({
           ...verification,
           state: "success",
         });
 
-        // Delay setting active until user presses the button
+        setShowSuccessModal(true);
       } else {
         setVerification({
           ...verification,
@@ -122,17 +132,9 @@ const SignUp = () => {
             <Text className="text-primary-500">Log In</Text>
           </Link>
         </View>
-        <ReactNativeModal
-          isVisible={verification.state === "pending"}
-          // onBackdropPress={() =>
-          //   setVerification({ ...verification, state: "default" })
-          // }
-          onModalHide={() => {
-            if (verification.state === "success") {
-              setShowSuccessModal(true);
-            }
-          }}
-        >
+
+        {/* Verification Modal */}
+        <ReactNativeModal isVisible={verification.state === "pending"}>
           <View className="bg-white px-7 py-9 rounded-2xl min-h-[300px]">
             <Text className="font-JakartaExtraBold text-2xl mb-2">
               Verification
@@ -163,6 +165,7 @@ const SignUp = () => {
           </View>
         </ReactNativeModal>
 
+        {/* ✅ Success Modal - Waits for User to Press the Button */}
         <ReactNativeModal isVisible={showSuccessModal}>
           <View className="bg-white px-7 py-9 rounded-2xl min-h-[300px]">
             <Image
@@ -176,7 +179,7 @@ const SignUp = () => {
               You have successfully verified your account.
             </Text>
             <CustomButton
-              title="Browse Home"
+              title="Go to Home"
               onPress={() => {
                 setShowSuccessModal(false);
                 router.push(`/(root)/(tabs)/home`);
@@ -189,4 +192,5 @@ const SignUp = () => {
     </ScrollView>
   );
 };
+
 export default SignUp;
