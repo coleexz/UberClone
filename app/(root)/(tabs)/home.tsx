@@ -1,40 +1,80 @@
 import React from "react";
-import { SignedIn, SignedOut, useUser } from "@clerk/clerk-expo";
-import { Link } from "expo-router";
+import { useUser } from "@clerk/clerk-expo";
+import { useAuth } from "@clerk/clerk-expo";
+
+import { router } from "expo-router";
+import { useState, useEffect } from "react";
 import {
   Text,
   View,
-  Image,
-  ActivityIndicator,
   TouchableOpacity,
+  Image,
+  FlatList,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { FlatList } from "react-native";
 
-import { MockRides } from "@/constants/rides";
-import RideCard from "@/components/RideCard";
-
-import { images, icons } from "@/constants/index";
 import GoogleTextInput from "@/components/GoogleTextInput";
-
 import Map from "@/components/Map";
+import RideCard from "@/components/RideCard";
+import { icons, images } from "@/constants";
+import { useFetch } from "@/lib/fetch";
+import { useLocationStore } from "@/store";
+import { Ride } from "@/types/type";
+import * as Location from "expo-location";
+import { MockRides } from "@/constants/rides";
 
-export default function Page() {
+const Home = () => {
   const { user } = useUser();
-  const loading = true;
+  const { signOut } = useAuth();
 
-  const handleSignOut = () => {};
+  const [hassPermisions, setHasPermissions] = useState(false);
+  const { setUserLocation, setDestinationLocation } = useLocationStore();
+
+  useEffect(() => {
+    const requestLocation = async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status !== "granted") {
+        setHasPermissions(false);
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({});
+
+      const address = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      setUserLocation({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        address: `${address[0].name}, ${address[0].region}`,
+      });
+    };
+
+    requestLocation();
+  });
+
+  const handleSignOut = () => {
+    signOut();
+    router.replace("/(auth)/sign-in");
+  };
 
   const handleDestinationPress = () => {};
 
   return (
-    <SafeAreaView>
+    <SafeAreaView className="bg-general-500">
       <FlatList
-        data={MockRides.slice(0, 5)}
+        data={MockRides?.slice(0, 5)}
         renderItem={({ item }) => <RideCard ride={item} />}
+        keyExtractor={(item, index) => index.toString()}
         className="px-5"
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{
+          paddingBottom: 100,
+        }}
         ListEmptyComponent={() => (
           <View className="flex flex-col items-center justify-center">
             {!loading ? (
@@ -52,14 +92,11 @@ export default function Page() {
             )}
           </View>
         )}
-        ListHeaderComponent={() => (
+        ListHeaderComponent={
           <>
             <View className="flex flex-row items-center justify-between my-5">
               <Text className="text-2xl font-JakartaExtraBold">
-                Welcome, {""}
-                {user?.firstName ||
-                  user?.emailAddresses[0].emailAddress.split("@")[0]}{" "}
-                👋
+                Welcome {user?.firstName}👋
               </Text>
               <TouchableOpacity
                 onPress={handleSignOut}
@@ -69,7 +106,6 @@ export default function Page() {
               </TouchableOpacity>
             </View>
 
-            {/* Google Text Input */}
             <GoogleTextInput
               icon={icons.search}
               containerStyle="bg-white shadow-md shadow-neutral-300"
@@ -77,14 +113,19 @@ export default function Page() {
             />
 
             <Text className="text-xl font-JakartaBold mt-5 mb-3">
-              Your Current Location
+              Your current location
             </Text>
-            <View className="flex flex-row items-center bg-transparent h-[300p]">
-              <Map />
-            </View>
+
+            <Map />
+
+            <Text className="text-xl font-JakartaBold mt-5 mb-3">
+              Recent Rides
+            </Text>
           </>
-        )}
+        }
       />
     </SafeAreaView>
   );
-}
+};
+
+export default Home;
