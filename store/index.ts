@@ -1,6 +1,6 @@
-import { create } from 'zustand'
+import { create } from "zustand";
 
-import { DriverStore, LocationStore, MarkerData } from '@/types/type'
+import { DriverStore, LocationStore, MarkerData } from "@/types/type";
 
 export const useLocationStore = create<LocationStore>((set) => ({
   userLatitude: null,
@@ -14,19 +14,19 @@ export const useLocationStore = create<LocationStore>((set) => ({
     longitude,
     address,
   }: {
-    latitude: number
-    longitude: number
-    address: string
+    latitude: number;
+    longitude: number;
+    address: string;
   }) => {
     set(() => ({
       userLatitude: latitude,
       userLongitude: longitude,
       userAddress: address,
-    }))
+    }));
 
     // if driver is selected and now new location is set, clear the selected driver
-    const { selectedDriver, clearSelectedDriver } = useDriverStore.getState()
-    if (selectedDriver) clearSelectedDriver()
+    const { selectedDriver, clearSelectedDriver } = useDriverStore.getState();
+    if (selectedDriver) clearSelectedDriver();
   },
 
   setDestinationLocation: ({
@@ -34,21 +34,21 @@ export const useLocationStore = create<LocationStore>((set) => ({
     longitude,
     address,
   }: {
-    latitude: number
-    longitude: number
-    address: string
+    latitude: number;
+    longitude: number;
+    address: string;
   }) => {
     set(() => ({
       destinationLatitude: latitude,
       destinationLongitude: longitude,
       destinationAddress: address,
-    }))
+    }));
 
     // if driver is selected and now new location is set, clear the selected driver
-    const { selectedDriver, clearSelectedDriver } = useDriverStore.getState()
-    if (selectedDriver) clearSelectedDriver()
+    const { selectedDriver, clearSelectedDriver } = useDriverStore.getState();
+    if (selectedDriver) clearSelectedDriver();
   },
-}))
+}));
 
 export const useDriverStore = create<DriverStore>((set) => ({
   drivers: [] as MarkerData[],
@@ -57,4 +57,4 @@ export const useDriverStore = create<DriverStore>((set) => ({
     set(() => ({ selectedDriver: driverId })),
   setDrivers: (drivers: MarkerData[]) => set(() => ({ drivers })),
   clearSelectedDriver: () => set(() => ({ selectedDriver: null })),
-}))
+}));

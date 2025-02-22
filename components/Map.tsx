@@ -1,7 +1,11 @@
-import { Text, View } from 'react-native'
-import MapView, { PROVIDER_DEFAULT } from 'react-native-maps'
-import { useLocationStore } from '@/store'
-import { calculateRegion } from '../lib/map'
+import { Text, View } from "react-native";
+import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
+import { useLocationStore } from "@/store";
+import { calculateRegion, generateMarkersFromData } from "../lib/map";
+import { useState, useEffect } from "react";
+import { MockDrivers } from "@/constants/drivers";
+import { MarkerData } from "@/types/type";
+import { icons } from "@/constants";
 
 const Map = () => {
   const {
@@ -9,30 +13,58 @@ const Map = () => {
     userLatitude,
     destinationLongitude,
     destinationLatitude,
-  } = useLocationStore()
+  } = useLocationStore();
 
   const region = calculateRegion({
     userLatitude,
     userLongitude,
     destinationLatitude,
     destinationLongitude,
-  })
+  });
+
+  const [selectedDriver, setSelectedDriver] = useState(null);
+  const [markers, setMarkers] = useState<MarkerData[]>([]);
+
+  useEffect(() => {
+    if (Array.isArray(MockDrivers)) {
+      if (!userLatitude || !userLongitude) return;
+      const newMarkers = generateMarkersFromData({
+        data: MockDrivers,
+        userLatitude,
+        userLongitude,
+      });
+      setMarkers(newMarkers);
+    }
+  }, [MockDrivers]);
 
   return (
-    <View className='w-full '>
+    <View className="w-full ">
       <MapView
         provider={PROVIDER_DEFAULT}
         style={{ height: 300 }}
-        tintColor='#0286FF'
-        mapType='mutedStandard'
+        tintColor="#0286FF"
+        mapType="mutedStandard"
         showsPointsOfInterest={false}
         showsUserLocation={true}
-        userInterfaceStyle='light'
+        userInterfaceStyle="light"
+        initialRegion={region}
       >
-        <Text className='text-2xl'>Map</Text>
+        {markers.map((marker) => (
+          <Marker
+            key={marker.id}
+            coordinate={{
+              latitude: marker.latitude,
+              longitude: marker.longitude,
+            }}
+            title={marker.title}
+            image={
+              selectedDriver === marker.id ? icons.selectedMarker : icons.marker
+            }
+          />
+        ))}
       </MapView>
     </View>
-  )
-}
+  );
+};
 
-export default Map
+export default Map;
