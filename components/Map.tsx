@@ -1,19 +1,25 @@
 import { Text, View } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
-import { useLocationStore } from "@/store";
+import { useDriverStore, useLocationStore } from "@/store";
 import { calculateRegion, generateMarkersFromData } from "../lib/map";
 import { useState, useEffect } from "react";
 import { MockDrivers } from "@/constants/drivers";
 import { MarkerData } from "@/types/type";
 import { icons } from "@/constants";
 
-const Map = () => {
+interface MapProps {
+  height: number;
+}
+
+const Map = ({ height }: MapProps) => {
   const {
     userLongitude,
     userLatitude,
     destinationLongitude,
     destinationLatitude,
   } = useLocationStore();
+
+  const { selectedDriver, setDrivers } = useDriverStore();
 
   const region = calculateRegion({
     userLatitude,
@@ -22,10 +28,11 @@ const Map = () => {
     destinationLongitude,
   });
 
-  const [selectedDriver, setSelectedDriver] = useState(null);
   const [markers, setMarkers] = useState<MarkerData[]>([]);
 
   useEffect(() => {
+    setDrivers(MockDrivers);
+
     if (Array.isArray(MockDrivers)) {
       if (!userLatitude || !userLongitude) return;
       const newMarkers = generateMarkersFromData({
@@ -41,7 +48,7 @@ const Map = () => {
     <View className="w-full ">
       <MapView
         provider={PROVIDER_DEFAULT}
-        style={{ height: 300 }}
+        style={{ height: height }}
         tintColor="#0286FF"
         mapType="mutedStandard"
         showsPointsOfInterest={false}

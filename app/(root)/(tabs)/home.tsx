@@ -123,7 +123,7 @@ const Home = () => {
               Your Current Location
             </Text>
 
-            <Map />
+            <Map height={300} />
 
             <Text className="text-xl font-JakartaBold mt-5 mb-3">
               Recent Rides
