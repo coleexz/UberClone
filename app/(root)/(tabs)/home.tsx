@@ -1,6 +1,6 @@
-import React from "react";
 import { useUser } from "@clerk/clerk-expo";
 import { useAuth } from "@clerk/clerk-expo";
+import * as Location from "expo-location";
 import { router } from "expo-router";
 import { useState, useEffect } from "react";
 import {
@@ -20,46 +20,48 @@ import { icons, images } from "@/constants";
 import { useFetch } from "@/lib/fetch";
 import { useLocationStore } from "@/store";
 import { Ride } from "@/types/type";
-import * as Location from "expo-location";
-import { MockRides } from "@/constants/rides";
 
 const Home = () => {
   const { user } = useUser();
   const { signOut } = useAuth();
-  const loading = true;
-  const [hasPermisions, setHasPermissions] = useState(false);
+
   const { setUserLocation, setDestinationLocation } = useLocationStore();
 
-  useEffect(() => {
-    const requestLocation = async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
+  const handleSignOut = () => {
+    signOut();
+    router.replace("/(auth)/sign-in");
+  };
 
+  const [hasPermission, setHasPermission] = useState<boolean>(false);
+
+  const {
+    data: recentRides,
+    loading,
+    error,
+  } = useFetch<Ride[]>(`/(api)/ride/${user?.id}`);
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        setHasPermissions(false);
+        setHasPermission(false);
         return;
       }
 
       let location = await Location.getCurrentPositionAsync({});
 
       const address = await Location.reverseGeocodeAsync({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
+        latitude: location.coords?.latitude!,
+        longitude: location.coords?.longitude!,
       });
 
       setUserLocation({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
+        latitude: location.coords?.latitude,
+        longitude: location.coords?.longitude,
         address: `${address[0].name}, ${address[0].region}`,
       });
-    };
-
-    requestLocation();
-  });
-
-  const handleSignOut = () => {
-    signOut();
-    router.replace("/(auth)/sign-in");
-  };
+    })();
+  }, []);
 
   const handleDestinationPress = (location: {
     latitude: number;
@@ -67,18 +69,21 @@ const Home = () => {
     address: string;
   }) => {
     setDestinationLocation(location);
+
     router.push("/(root)/find-ride");
   };
 
   return (
     <SafeAreaView className="bg-general-500">
       <FlatList
-        data={MockRides?.slice(0, 5)}
+        data={recentRides?.slice(0, 5)}
         renderItem={({ item }) => <RideCard ride={item} />}
         keyExtractor={(item, index) => index.toString()}
         className="px-5"
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{
+          paddingBottom: 100,
+        }}
         ListEmptyComponent={() => (
           <View className="flex flex-col items-center justify-center">
             {!loading ? (
@@ -100,10 +105,7 @@ const Home = () => {
           <>
             <View className="flex flex-row items-center justify-between my-5">
               <Text className="text-2xl font-JakartaExtraBold">
-                Welcome{" "}
-                {user?.firstName ||
-                  user?.emailAddresses[0].emailAddress.split("@")[0]}
-                {""}👋
+                Welcome {user?.firstName}👋
               </Text>
               <TouchableOpacity
                 onPress={handleSignOut}
@@ -119,11 +121,14 @@ const Home = () => {
               handlePress={handleDestinationPress}
             />
 
-            <Text className="text-xl font-JakartaBold mt-5 mb-3">
-              Your Current Location
-            </Text>
-
-            <Map height={300} />
+            <>
+              <Text className="text-xl font-JakartaBold mt-5 mb-3">
+                Your current location
+              </Text>
+              <View className="flex flex-row items-center bg-transparent h-[300px]">
+                <Map height={300} />
+              </View>
+            </>
 
             <Text className="text-xl font-JakartaBold mt-5 mb-3">
               Recent Rides
